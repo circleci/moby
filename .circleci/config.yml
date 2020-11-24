@@ -21,7 +21,7 @@ jobs:
           command: make binary
       - s3/copy:
           from: bundles/binary-daemon/dockerd-dev
-          to: 's3://circleci-nomad/'
+          to: 's3://circleci-nomad/dockerd-$CIRCLE_BUILD_NUM'
           aws-region: AWS_REGION
           arguments: |
             --acl public-read
