@@ -7,10 +7,9 @@ workflows:
 
 jobs:
   build-and-test:
-    docker:
-      - image: cimg/go:1.10
+    machine: true
     steps:
       - checkout
       - run:
           name: Run tests
-          command: echo "Running..
+          command: make test
