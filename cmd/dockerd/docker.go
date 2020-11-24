@@ -13,6 +13,9 @@ import (
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/DataDog/datadog-go/statsd"
+	statsDHolder "github.com/docker/docker/daemon/statsd"
 )
 
 func newDaemonCommand() *cobra.Command {
@@ -20,7 +23,7 @@ func newDaemonCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:           "dockerd [OPTIONS]",
-		Short:         "A self-sufficient runtime for containers.",
+		Short:         "A self-sufficient runtime for containers v3.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cli.NoArgs,
@@ -64,6 +67,18 @@ func main() {
 	} else {
 		logrus.SetOutput(stderr)
 	}
+
+	logrus.Info("Modified docker")
+	// init statsd
+	stats, err := statsd.New(
+		fmt.Sprintf("localhost:8125"),
+		statsd.WithNamespace("docker."),
+	)
+	if err != nil {
+		fmt.Fprintf(stderr, "%s\n", err)
+		os.Exit(1)
+	}
+	statsDHolder.C = stats
 
 	cmd := newDaemonCommand()
 	cmd.SetOutput(stdout)

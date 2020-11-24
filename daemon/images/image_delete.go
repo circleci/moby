@@ -13,6 +13,8 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/system"
 	"github.com/pkg/errors"
+
+	"github.com/docker/docker/daemon/statsd"
 )
 
 type conflictType int
@@ -62,6 +64,7 @@ const (
 //
 func (i *ImageService) ImageDelete(imageRef string, force, prune bool) ([]types.ImageDeleteResponseItem, error) {
 	start := time.Now()
+	defer func() { statsd.C.Timing("custom.image_delete", time.Since(start), []string{}, 1.0) }()
 	records := []types.ImageDeleteResponseItem{}
 
 	img, err := i.GetImage(imageRef)

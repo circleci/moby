@@ -2,10 +2,13 @@ package images // import "github.com/docker/docker/daemon/images"
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/image"
+
+	"github.com/docker/docker/daemon/statsd"
 )
 
 // ErrImageDoesNotExist is error returned when no image can be found for a reference.
@@ -26,6 +29,8 @@ func (e ErrImageDoesNotExist) NotFound() {}
 
 // GetImage returns an image corresponding to the image referred to by refOrID.
 func (i *ImageService) GetImage(refOrID string) (*image.Image, error) {
+	startTime := time.Now()
+	defer func() { statsd.C.Timing("custom.image_get", time.Since(startTime), []string{}, 1.0) }()
 	ref, err := reference.ParseAnyReference(refOrID)
 	if err != nil {
 		return nil, errdefs.InvalidParameter(err)
