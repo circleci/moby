@@ -1,0 +1,16 @@
+version: 2.1
+
+workflows:
+  ci:
+    jobs:
+      - build-and-test
+
+jobs:
+  build-and-test:
+    docker:
+      - image: cimg/go:1.10
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: echo "Running..
