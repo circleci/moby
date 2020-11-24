@@ -1,15 +1,27 @@
 version: 2.1
 
+orbs:
+  s3: circleci/aws-s3@1.0.8
+
 workflows:
   ci:
     jobs:
-      - build-and-test
+      - build-and-test:
+          context: org-global
 
 jobs:
   build-and-test:
     machine: true
+    environment:
+      AWS_REGION: us-east-1
     steps:
       - checkout
       - run:
           name: Run tests
           command: make test
+      - s3/copy:
+          from: bundles/binary-daemon/dockerd
+          to: 's3://circleci-nomad/'
+          aws-region: AWS_REGION
+          arguments: |
+            --acl public-read
