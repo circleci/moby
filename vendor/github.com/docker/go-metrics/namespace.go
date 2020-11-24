@@ -95,6 +95,7 @@ func (n *Namespace) newTimerOpts(name, help string) prometheus.HistogramOpts {
 		Name:        makeName(name, Seconds),
 		Help:        help,
 		ConstLabels: prometheus.Labels(n.labels),
+		Buckets:     []float64{1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600},
 	}
 }
 
