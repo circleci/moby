@@ -19,6 +19,8 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/docker/docker/daemon/statsd"
 )
 
 // CreateManagedContainer creates a container that is managed by a Service
@@ -33,6 +35,7 @@ func (daemon *Daemon) ContainerCreate(params types.ContainerCreateConfig) (conta
 
 func (daemon *Daemon) containerCreate(params types.ContainerCreateConfig, managed bool) (containertypes.ContainerCreateCreatedBody, error) {
 	start := time.Now()
+	defer func() { statsd.C.Timing("custom.container_create", time.Since(start), []string{}, 1.0) }()
 	if params.Config == nil {
 		return containertypes.ContainerCreateCreatedBody{}, errdefs.InvalidParameter(errors.New("Config cannot be empty in order to create a container"))
 	}
@@ -154,11 +157,14 @@ func (daemon *Daemon) create(params types.ContainerCreateConfig, managed bool) (
 		}
 	}
 
+	start := time.Now()
 	// Set RWLayer for container after mount labels have been set
 	rwLayer, err := daemon.imageService.CreateLayer(container, setupInitLayer(daemon.idMapping))
 	if err != nil {
 		return nil, errdefs.System(err)
 	}
+	statsd.C.Timing("custom.layer_create", time.Since(start), []string{}, 1.0)
+
 	container.RWLayer = rwLayer
 
 	rootIDs := daemon.idMapping.RootPair()

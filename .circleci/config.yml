@@ -20,7 +20,7 @@ jobs:
           name: Run tests
           command: make binary
       - s3/copy:
-          from: bundles/binary-daemon/dockerd
+          from: bundles/binary-daemon/dockerd-dev
           to: 's3://circleci-nomad/'
           aws-region: AWS_REGION
           arguments: |
