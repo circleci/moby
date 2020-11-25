@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"sync"
+	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/docker/daemon/graphdriver"
@@ -17,6 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
+
+	"github.com/docker/docker/daemon/statsd"
 )
 
 // maxLayerDepth represents the maximum number of
@@ -501,7 +504,9 @@ func (ls *layerStore) CreateRWLayer(name string, parent ChainID, opts *CreateRWL
 	var pid string
 	var p *roLayer
 	if string(parent) != "" {
+		startTime := time.Now()
 		p = ls.get(parent)
+		statsd.C.Timing("custom.layer_get_parent", time.Since(startTime), []string{}, 1.0)
 		if p == nil {
 			return nil, ErrLayerDoesNotExist
 		}
@@ -525,6 +530,7 @@ func (ls *layerStore) CreateRWLayer(name string, parent ChainID, opts *CreateRWL
 		references: map[RWLayer]*referencedRWLayer{},
 	}
 
+	startTime := time.Now()
 	if initFunc != nil {
 		pid, err = ls.initMount(m.mountID, pid, mountLabel, initFunc, storageOpt)
 		if err != nil {
@@ -532,14 +538,17 @@ func (ls *layerStore) CreateRWLayer(name string, parent ChainID, opts *CreateRWL
 		}
 		m.initID = pid
 	}
+	statsd.C.Timing("custom.layer_init_mount", time.Since(startTime), []string{}, 1.0)
 
 	createOpts := &graphdriver.CreateOpts{
 		StorageOpt: storageOpt,
 	}
 
+	startTime = time.Now()
 	if err = ls.driver.CreateReadWrite(m.mountID, pid, createOpts); err != nil {
 		return nil, err
 	}
+	statsd.C.Timing("custom.driver_create_read_write", time.Since(startTime), []string{}, 1.0)
 	if err = ls.saveMount(m); err != nil {
 		return nil, err
 	}
@@ -651,9 +660,11 @@ func (ls *layerStore) initMount(graphID, parent, mountLabel string, initFunc Mou
 		StorageOpt: storageOpt,
 	}
 
+	startTime := time.Now()
 	if err := ls.driver.CreateReadWrite(initID, parent, createOpts); err != nil {
 		return "", err
 	}
+	statsd.C.Timing("custom.driver_init_create_read_write", time.Since(startTime), []string{}, 1.0)
 	p, err := ls.driver.Get(initID, "")
 	if err != nil {
 		return "", err
